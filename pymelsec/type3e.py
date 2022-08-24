@@ -11,11 +11,18 @@ import time
 from datetime import datetime
 from . import constants as const
 from .exceptions import (
+    CommTypeError,
     DataTypeError, 
-    DeviceCodeError, 
+    DeviceCodeError,
     MCError,
+    PLCTypeError
 )
-from .tag import Tag, CPUInfo, CPUStatus, LoopbackTest
+from .tag import (
+    Tag,
+    CPUInfo,
+    CPUStatus,
+    LoopbackTest
+)
 
 
 def get_device_number(device:str) -> str:
@@ -323,7 +330,7 @@ class Type3E:
         mc_data = bytes()
         # subheader is big endian
         if self.comm_type == const.COMMTYPE_BINARY:
-            mc_data += struct.pack('>H', subheader)
+            mc_data += struct.pack('>H', self.subheader)
         else:
             mc_data += f'{self.subheader:04x}'.upper().encode()
         mc_data += self._encode_value(self.network, const.DT.BIT)
@@ -383,7 +390,7 @@ class Type3E:
                 )
             device_number = int(get_device_number(device), device_base)
             if self.plc_type is const.iQR_SERIES:
-                device_data += struck.pack(f'{self.endian}IH', device_number, device_code)
+                device_data += struct.pack(f'{self.endian}IH', device_number, device_code)
             else:
                 if self.endian == const.ENDIAN_LITTLE:
                     device_data += struct.pack('<I', device_number)[:-1]
@@ -1103,8 +1110,10 @@ class Type3E:
         Run PLC
 
         Args:
-            clear_mode(int):     Clear mode. 0: does not clear. 1: clear except latch device. 2: clear all.
-            force_exec(bool):    Force to execute if PLC is operated remotely by other device.
+            clear_mode(int):    0: does not clear
+                                1: clear except latch device
+                                2: clear all
+            force_exec(bool):   Force to execute if PLC is operated remotely by other device.
 
         """
 
@@ -1510,11 +1519,11 @@ class Type3E:
         Do echo test. Send data and response_ data should be same.
 
         Args:
-            echo_data(str):     send data to PLC
+            echo_data(str): send data to PLC
 
         Returns:
-            response_len(int):  response data length from PLC
-            response_data(str): response data from PLC
+            length(int):    response data length from PLC
+            data(str):      response data from PLC
         """
 
         echo_data_len = len(echo_data)
