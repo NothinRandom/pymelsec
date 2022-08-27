@@ -38,17 +38,17 @@ class Tag(NamedTuple):
         )
 
 
-class CPUInfo(NamedTuple):
-    type: str  # type (e.g. 'R08ENCPU')
-    info: str  # info (e.g. '4806')
+class CPUModel(NamedTuple):
+    name: str  # name (e.g. 'R08ENCPU')
+    code: str  # code (e.g. '4806')
 
 
     def __str__(self):
-        return f"{self.type}, {self.info}"
+        return f"{self.name}, {self.code}"
 
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(type={type.type!r}, info={self.info!r})"
+        return f"{self.__class__.__name__}(type={type.name!r}, info={self.code!r})"
 
 
 class CPUStatus(NamedTuple):

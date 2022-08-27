@@ -1,3 +1,6 @@
+v0.1.2:
+* update from read_cpu_type to read_cpu_model
+
 v0.1.1:
 * fix missing error classes in type3e.py
 * update README

@@ -20,7 +20,7 @@ Type 1C~4C is not supported.
 
 A and FX series are not supportted because they does not support 3E or 4E type.
 
-## How to use mc protocol 
+## How to use pymelsec 
 ### 1. Set up PLC
 You need to open PLC's port for MELSEC Communication by GxWorks2 or GxWorks3 software.  
 1. [Mitsubishi PLC manuals](https://www.mitsubishielectric.com/app/fa/download/search.do?kisyu=/plcr&mode=manual)
@@ -379,16 +379,16 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
 
 
     """
-    Read CPU info
+    Read CPU model
 
     Returns:
-        CPUInfo(named tuple): contains fiels "type" and "code"
-        example: CPUInfo(type='R08ENCPU', code='4806')
+        CPUModel(named tuple): contains fields "name" and "code"
+        example: CPUModel(name='R08ENCPU', code='4806')
     Notes:
-        to access field type: cpu_info.type (e.g. 'R08ENCPU')
-        to access field cause: cpu_info.code (e.g. '4806')
+        to access field type: cpu_model.name (e.g. 'R08ENCPU')
+        to access field cause: cpu_model.code (e.g. '4806')
     """
-    cpu_info = plc.read_cpu_type()
+    cpu_model = plc.read_cpu_model()
 
 
 
@@ -397,7 +397,7 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
 
     Returns:
         CPUStatus(named tuple): contains fiels "status" and "cause"
-        example: CPUInfo(status='Stop', cause='By Error')
+        example: CPUStatus(status='Stop', cause='By Error')
     Notes:
         to access field status: cpu_state.status (e.g. 'Stop')
         to access field cause: cpu_state.cause (e.g. 'By Error')

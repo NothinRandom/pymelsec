@@ -19,7 +19,7 @@ from .exceptions import (
 )
 from .tag import (
     Tag,
-    CPUInfo,
+    CPUModel,
     CPUStatus,
     LoopbackTest
 )
@@ -1339,15 +1339,15 @@ class Type3E:
         return None
 
 
-    def read_cpu_type(self) -> CPUInfo:
+    def read_cpu_model(self) -> CPUModel:
         """
-        Read CPU type.
+        Read CPU model.
 
         Returns:
-            CPUInfo(NamedTuple): (CPU type(str), CPU code(str))
+            CPUModel(NamedTuple): (CPU name(str), CPU code(str))
         """
 
-        command = const.Commands.READ_CPU_TYPE
+        command = const.Commands.READ_CPU_MODEL
         subcommand = const.SubCommands.ZERO
 
         request_data = bytes()
@@ -1361,15 +1361,15 @@ class Type3E:
         self._check_command_response(recv_data)
         data_index = self._get_response_data_index()
         cpu_name_length = 16
-        cpu_type = recv_data[data_index:data_index+cpu_name_length].decode()
-        cpu_type = cpu_type.replace("\x20", "")
+        cpu_name = recv_data[data_index:data_index+cpu_name_length].decode()
+        cpu_name = cpu_name.replace("\x20", "")
         if self.comm_type == const.COMMTYPE_BINARY:
             cpu_code = struct.unpack('<H', recv_data[data_index+cpu_name_length:])[0]
             cpu_code = f'{cpu_code:04x}'
         else:
             cpu_code = recv_data[data_index+cpu_name_length:].decode()
 
-        return CPUInfo(cpu_type, cpu_code)
+        return CPUModel(cpu_name, cpu_code)
 
 
     def read_cpu_status(self) -> CPUStatus:

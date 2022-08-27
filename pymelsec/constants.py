@@ -37,7 +37,7 @@ class Commands:
     REMOTE_UNLOCK       = 0x1630
     REMOTE_LOCK         = 0x1631
     ERROR_LED_OFF       = 0x1617
-    READ_CPU_TYPE       = 0x0101
+    READ_CPU_MODEL      = 0x0101
     LOOPBACK_TEST       = 0x0619
 
 
