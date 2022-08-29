@@ -77,14 +77,14 @@ class Type4E(Type3E):
             mc_data += struct.pack('>H', self.subheader)
         else:
             mc_data += f'{self.subheader:04x}'.upper().encode()
-        mc_data += self._encode_value(self.subheader_serial, const.DT.sWORD)
-        mc_data += self._encode_value(0, const.DT.sWORD)
+        mc_data += self._encode_value(self.subheader_serial, const.DT.SWORD)
+        mc_data += self._encode_value(0, const.DT.SWORD)
         mc_data += self._encode_value(self.network, const.DT.BIT)
         mc_data += self._encode_value(self.pc, const.DT.BIT)
-        mc_data += self._encode_value(self.dest_moduleio, const.DT.sWORD)
+        mc_data += self._encode_value(self.dest_moduleio, const.DT.SWORD)
         mc_data += self._encode_value(self.dest_modulesta, const.DT.BIT)
         #add self.timer size
-        mc_data += self._encode_value(self._wordsize + len(request_data), const.DT.sWORD)
-        mc_data += self._encode_value(self.timer, const.DT.sWORD)
+        mc_data += self._encode_value(self._wordsize + len(request_data), const.DT.SWORD)
+        mc_data += self._encode_value(self.timer, const.DT.SWORD)
         mc_data += request_data
         return mc_data

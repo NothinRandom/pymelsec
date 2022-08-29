@@ -335,11 +335,11 @@ class Type3E:
             mc_data += f'{self.subheader:04x}'.upper().encode()
         mc_data += self._encode_value(self.network, const.DT.BIT)
         mc_data += self._encode_value(self.pc, const.DT.BIT)
-        mc_data += self._encode_value(self.dest_moduleio, const.DT.sWORD)
+        mc_data += self._encode_value(self.dest_moduleio, const.DT.SWORD)
         mc_data += self._encode_value(self.dest_modulesta, const.DT.BIT)
         #add self.timer size
-        mc_data += self._encode_value(self._wordsize + len(request_data), const.DT.sWORD)
-        mc_data += self._encode_value(self.timer, const.DT.sWORD)
+        mc_data += self._encode_value(self._wordsize + len(request_data), const.DT.SWORD)
+        mc_data += self._encode_value(self.timer, const.DT.SWORD)
         mc_data += request_data
 
         return mc_data
@@ -358,8 +358,8 @@ class Type3E:
         """
 
         command_data = bytes()
-        command_data += self._encode_value(command, const.DT.sWORD)
-        command_data += self._encode_value(subcommand, const.DT.sWORD)
+        command_data += self._encode_value(command, const.DT.SWORD)
+        command_data += self._encode_value(subcommand, const.DT.SWORD)
 
         return command_data
 
@@ -413,7 +413,7 @@ class Type3E:
         return device_data
 
 
-    def _encode_value(self, value:int, mode:str=const.DT.sWORD, isSigned:bool=False) -> bytes:
+    def _encode_value(self, value:int, mode:str=const.DT.SWORD, isSigned:bool=False) -> bytes:
         """
         Encode value data to byte.
 
@@ -433,9 +433,9 @@ class Type3E:
             if self.comm_type != const.COMMTYPE_BINARY:
                 if mode.lower() == const.DT.BIT:
                     value_byte = f'{value_byte:02x}'.upper().encode()
-                elif mode.lower() == const.DT.sWORD:
+                elif mode.lower() == const.DT.SWORD:
                     value_byte = f'{value_byte:04x}'.upper().encode()
-                elif mode.lower() == const.DT.sDWORD:
+                elif mode.lower() == const.DT.SDWORD:
                     value_byte = f'{value_byte:08x}'.upper().encode()
         except:
             raise ValueError("Exceeded device value range")
@@ -443,7 +443,7 @@ class Type3E:
         return value_byte
 
 
-    def _decode_value(self, byte_array:bytes, mode:str=const.DT.sWORD, isSigned:bool=False) -> int:
+    def _decode_value(self, byte_array:bytes, mode:str=const.DT.SWORD, isSigned:bool=False) -> int:
         """
         Decode byte array to value.
 
@@ -501,28 +501,53 @@ class Type3E:
             raise MCError(status)
 
 
-    def batch_read_words(self, ref_device:str, read_size:int, decode:bool=True) -> list:
+    def batch_read(
+        self, 
+        ref_device:str, 
+        read_size:int, 
+        data_type:str, 
+        bool_encode:bool=False, 
+        decode:bool=True
+    ) -> list:
         """
-        Batch read in word units.
+        Batch read in data type units.
 
         Args:
-            ref_device(str):    Reference device address. (ex: "D1000")
-            read_size(int):     Number of device points
+            ref_device(str):    Reference device address. (e.g. "D1000")
+            read_size(int):     Number of device points. (e.g. 5)
+            data_type(str):     Data type (e.g. DT.SWORD)
+            bool_encode(bool):  Represent value as bool (True) or int (False)
+                                Only applicable to data type BIT
+            decode(bool):       Decode or keep as raw bytes
 
         Returns:
-            word_values(list[int]):  word units value list
+            result(list[Tag]):  Tag list
         """
 
-        command = const.Commands.BATCH_READ
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.TWO
-        else:
-            subcommand = const.SubCommands.ZERO
+        # get data type name (e.g. "SWORD") and byte size (e.g. 2)
+        data_type_name = const.DT.get_dt_name(data_type=data_type)
+        data_type_size = const.DT.get_dt_size(data_type=data_type)
+        # get device and reference index
+        device_type = re.search(r"\D+", ref_device).group(0)
+        device_index = int(re.search(r"\d+", ref_device).group(0))
 
+        command = const.Commands.BATCH_READ
+        if data_type == const.DT.BIT:
+            if self.plc_type == const.iQR_SERIES:
+                subcommand = const.SubCommands.THREE
+            else:
+                subcommand = const.SubCommands.ONE
+        else:
+            if self.plc_type == const.iQR_SERIES:
+                subcommand = const.SubCommands.TWO
+            else:
+                subcommand = const.SubCommands.ZERO
+
+        # build payload
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
         request_data += self._build_device_data(ref_device)
-        request_data += self._encode_value(read_size)
+        request_data += self._encode_value(read_size*data_type_size//2)
         send_data = self._build_send_data(request_data)
         # send data
         self._send(send_data)
@@ -530,277 +555,138 @@ class Type3E:
         recv_data = self._recv()
         self._check_command_response(recv_data)
 
-        word_values = []
-        data_index = self._get_response_data_index()
-        if decode:
-            for _ in range(read_size):
-                wordvalue = self._decode_value(
-                    byte_array=recv_data[data_index:data_index+self._wordsize],
-                    isSigned=True
+        result = []
+        response_data_index = self._get_response_data_index()
+        data_index = response_data_index
+        # special case for reading bits
+        if data_type == const.DT.BIT:
+            if self.comm_type == const.COMMTYPE_BINARY:
+                for index in range(read_size):
+                    data_index = index//2 + response_data_index
+                    if decode:
+                        value = struct.unpack('<B', recv_data[data_index:data_index+1])[0]
+                        #if index//2==0, bit value is 4th bit
+                        if(index%2==0):
+                            bit_value = 1 if value & (1<<4) else 0
+                        else:
+                            bit_value = 1 if value & (1<<0) else 0
+                        if bool_encode:
+                            bit_value = True if bit_value == 1 else False
+                    else:
+                        bit_value = recv_data[data_index:data_index+1]
+                    result.append(
+                        Tag(
+                            device=f"{device_type}{device_index}",
+                            value=bit_value, 
+                            type=data_type_name, 
+                            error="Success"
+                        )
                     )
-                word_values.append(wordvalue)
-                data_index += self._wordsize
-
+                    device_index += 1
+            else:
+                data_index = response_data_index
+                byte_size = 1
+                for index in range(read_size):
+                    bit_value = int(recv_data[data_index:data_index+byte_size].decode())
+                    if bool_encode:
+                        bit_value = True if bit_value == 1 else False
+                    result.append(
+                        Tag(
+                            device=f"{device_type}{device_index}",
+                            value=bit_value, 
+                            type=data_type_name, 
+                            error="Success"
+                        )
+                    )
+                    data_index += byte_size
+                    device_index += 1
+        # all other data types just unpacks
         else:
-            for _ in range(read_size):
-                wordvalue = recv_data[data_index:data_index+self._wordsize]
-                word_values.append(wordvalue)
-                data_index += self._wordsize
+            if decode:
+                for index in range(read_size):
+                    value = struct.unpack(f'{self.endian}{data_type}', recv_data[data_index:data_index+data_type_size])[0]
+                    result.append(
+                        Tag(
+                            device=f"{device_type}{device_index}", 
+                            value=value, 
+                            type=data_type_name, 
+                            error="Success"
+                        )
+                    )
+                    data_index += data_type_size
+                    device_index += data_type_size//2
+            else:
+                for index in range(read_size):
+                    result.append(
+                        Tag(
+                            device=f"{device_type}{device_index}",
+                            value=recv_data[data_index:data_index+data_type_size], 
+                            type=data_type_name, 
+                            error="Success"
+                        )
+                    )
+                    data_index += data_type_size
+                    device_index += data_type_size//2
 
-        return word_values
+        return result
 
 
-    def batch_read_bits(self, ref_device:str, read_size:int) -> list:
+    def batch_write(self, ref_device:str, values:list, data_type:str):
         """
-        Batch read in bit units.
-
-        Args:
-            ref_device(str):    Reference device address. (ex: "X1")
-            size(int):          Number of device points
-
-        Returns:
-            bits_values(list[int]):  bit units value(0 or 1) list
-        """
-
-        command = const.Commands.BATCH_READ
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.THREE
-        else:
-            subcommand = const.SubCommands.ONE
-
-        request_data = bytes()
-        request_data += self._build_command_data(command, subcommand)
-        request_data += self._build_device_data(ref_device)
-        request_data += self._encode_value(read_size)
-        send_data = self._build_send_data(request_data)
-
-        # send data
-        self._send(send_data)
-        # receive data
-        recv_data = self._recv()
-        self._check_command_response(recv_data)
-
-        bit_values = []
-        if self.comm_type == const.COMMTYPE_BINARY:
-            for i in range(read_size):
-                data_index = i//2 + self._get_response_data_index()
-                value = struct.unpack('<B', recv_data[data_index:data_index+1])[0]
-                #if i//2==0, bit value is 4th bit
-                if(i%2==0):
-                    bitvalue = 1 if value & (1<<4) else 0
-                else:
-                    bitvalue = 1 if value & (1<<0) else 0
-                bit_values.append(bitvalue)
-        else:
-            data_index = self._get_response_data_index()
-            byte_range = 1
-            for i in range(read_size):
-                bitvalue = int(recv_data[data_index:data_index+byte_range].decode())
-                bit_values.append(bitvalue)
-                data_index += byte_range
-
-        return bit_values
-
-
-    def batch_write_words(self, ref_device:str, values:list):
-        """
-        Batch write in word units.
+        Batch write in data type units.
 
         Args:
             ref_device(str):    Reference device address. (ex: "D1000")
-            values(list[int]):  List of values.
+            values(list[any]):  List of values: int, float, double
+            data_type(str):     Data type: BIT, SWORD, UWORD, FLOAT, etc
         """
 
-        write_size = len(values)
+        data_type_size = const.DT.get_dt_size(data_type=data_type)
+        write_elements = len(values)
 
         command = const.Commands.BATCH_WRITE
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.TWO
+        if data_type == const.DT.BIT:
+            if self.plc_type == const.iQR_SERIES:
+                subcommand = const.SubCommands.THREE
+            else:
+                subcommand = const.SubCommands.ONE
         else:
-            subcommand = const.SubCommands.ZERO
+            if self.plc_type == const.iQR_SERIES:
+                subcommand = const.SubCommands.TWO
+            else:
+                subcommand = const.SubCommands.ZERO
 
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
         request_data += self._build_device_data(ref_device)
-        request_data += self._encode_value(write_size)
-        for value in values:
-            request_data += self._encode_value(value=value, isSigned=True)
-        send_data = self._build_send_data(request_data)
-
-        # send data
-        self._send(send_data)
-        # receive data
-        recv_data = self._recv()
-        self._check_command_response(recv_data)
-
-        return None
-
-
-    def batch_write_bits(self, ref_device:str, values:list):
-        """
-        Batch read in bit units.
-
-        Args:
-            ref_device(str):    Reference device address. (ex: "X10")
-            values(list[int]):  List of values: 0 (OFF) or 1 (ON).
-        """
-
-        write_size = len(values)
-        # check values
-        for value in values:
-            if not (value == 0 or value == 1): 
-                raise ValueError("Each value must be 0 (OFF) or 1 (ON).")
-
-        command = const.Commands.BATCH_WRITE
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.THREE
-        else:
-            subcommand = const.SubCommands.ONE
-
-        request_data = bytes()
-        request_data += self._build_command_data(command, subcommand)
-        request_data += self._build_device_data(ref_device)
-        request_data += self._encode_value(write_size)
-        if self.comm_type == const.COMMTYPE_BINARY:
-            #every value is 0 or 1.
-            #Even index's value turns on or off 4th bit, odd index's value turns on or off 0th bit.
-            #First, create send data list. Length must be ceil of len(values).
-            bit_data = [0 for _ in range((len(values) + 1)//2)]
-            for index, value in enumerate(values):
-                #calc which index data should be turns on.
-                value_index = index//2
-                #calc which bit should be turns on.
-                bit_index = 4 if index%2 == 0 else 0
-                #turns on or off value of 4th or 0th bit, depends on value
-                bit_value = value << bit_index
-                #Take or of send data
-                bit_data[value_index] |= bit_value
-            request_data += bytes(bit_data)
+        request_data += self._encode_value(write_elements * data_type_size//2)
+        # special case for writing bits
+        if data_type == const.DT.BIT:
+            if self.comm_type == const.COMMTYPE_BINARY:
+                #every value is 0 or 1.
+                #Even index's value turns on or off 4th bit, odd index's value turns on or off 0th bit.
+                #First, create send data list. Length must be ceil of len(values).
+                bit_data = [0 for _ in range((len(values) + 1)//2)]
+                for index, value in enumerate(values):
+                    # make sure value is int
+                    value = int(value==True)
+                    #calc which index data should be turns on.
+                    value_index = index//2
+                    #calc which bit should be turns on.
+                    bit_index = 4 if index%2 == 0 else 0
+                    #turns on or off value of 4th or 0th bit, depends on value
+                    bit_value = value << bit_index
+                    #Take or of send data
+                    bit_data[value_index] |= bit_value
+                request_data += bytes(bit_data)
+            else:
+                for value in values:
+                    request_data += str(value).encode()
+        # all other data types just packs
         else:
             for value in values:
-                request_data += str(value).encode()
-        send_data = self._build_send_data(request_data)
-                    
-        # send data
-        self._send(send_data)
-        # receive data
-        recv_data = self._recv()
-        self._check_command_response(recv_data)
-
-        return None
-
-
-    def randomread(self, word_devices:list, dword_devices:list, decode:bool=True) -> tuple:
-        """
-        Read word units and dword units randomly.
-        Moniter condition is not supported.
-
-        Args:
-            word_devices(list[str]):    Read device word units. (ex: ["D1000", "D1010"])
-            dword_devices(list[str]):   Read device dword units. (ex: ["D1000", "D1012"])
-
-        Returns:
-            word_values(list[int]):     word units value list
-            dword_values(list[int]):    dword units value list
-
-        """
-        command = const.Commands.RANDOM_READ
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.TWO
-        else:
-            subcommand = const.SubCommands.ZERO
-
-        word_size = len(word_devices)
-        dword_size = len(dword_devices)
-        
-        request_data = bytes()
-        request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(word_size, mode=const.DT.BIT)
-        request_data += self._encode_value(dword_size, mode=const.DT.BIT)
-        for word_device in word_devices:
-            request_data += self._build_device_data(word_device)
-        for dword_device in dword_devices:
-            request_data += self._build_device_data(dword_device)        
-        send_data = self._build_send_data(request_data)
-
-        # send data
-        self._send(send_data)
-        # receive data
-        recv_data = self._recv()
-        self._check_command_response(recv_data)
-        data_index = self._get_response_data_index()
-        word_values= []
-        dword_values= []
-        if decode:
-            for word_device in word_devices:
-                wordvalue = self._decode_value(
-                    byte_array=recv_data[data_index:data_index+self._wordsize],
-                    isSigned=True
-                    )
-                word_values.append(wordvalue)
-                data_index += self._wordsize
-            for dword_device in dword_devices:
-                dwordvalue = self._decode_value(
-                    byte_array=recv_data[data_index:data_index+self._wordsize*2],
-                    mode=const.DT.sDWORD,
-                    isSigned=True
-                    )
-                dword_values.append(dwordvalue)
-                data_index += self._wordsize*2
-        else:
-            for word_device in word_devices:
-                wordvalue = recv_data[data_index:data_index+self._wordsize]
-                word_values.append(wordvalue)
-                data_index += self._wordsize
-            for dword_device in dword_devices:
-                dwordvalue = recv_data[data_index:data_index+self._wordsize*2]
-                dword_values.append(dwordvalue)
-                data_index += self._wordsize*2
-
-        return word_values, dword_values
-
-
-    def random_write(
-        self,
-        word_devices:list,
-        word_values:list,
-        dword_devices:list,
-        dword_values:list
-    ):
-        """
-        Write word units and dword units randomly.
-
-        Args:
-            word_devices(list[str]):    Write word devices. (ex: ["D1000", "D1020"])
-            word_values(list[int]):     Values for each word devices. (ex: [100, 200])
-            dword_devices(list[str]):   Write dword devices. (ex: ["D1000", "D1020"])
-            dword_values(list[int]):    Values for each dword devices. (ex: [100, 200])
-        """
-
-        if len(word_devices) != len(word_values):
-            raise ValueError("word_devices and word_values must be same length")
-        if len(dword_devices) != len(dword_values):
-            raise ValueError("dword_devices and dword_values must be same length")
-            
-        word_size = len(word_devices)
-        dword_size = len(dword_devices)
-
-        command = const.Commands.RANDOM_WRITE
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.TWO
-        else:
-            subcommand = const.SubCommands.ZERO
-        
-        request_data = bytes()
-        request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(word_size, mode=const.DT.BIT)
-        request_data += self._encode_value(dword_size, mode=const.DT.BIT)
-        for word_device, word_value in zip(word_devices, word_values):
-            request_data += self._build_device_data(word_device)
-            request_data += self._encode_value(word_value, mode=const.DT.sWORD, isSigned=True)
-        for dword_device, dword_value in zip(dword_devices, dword_values):
-            request_data += self._build_device_data(dword_device)   
-            request_data += self._encode_value(dword_value, mode="long", isSigned=True)     
+                # request_data += self._encode_value(value=value, isSigned=True)
+                request_data += struct.pack(f'{self.endian}{data_type}', value)
         send_data = self._build_send_data(request_data)
 
         # send data
@@ -812,51 +698,7 @@ class Type3E:
         return None
 
 
-    def random_write_bits(self, bit_devices:list, values:list):
-        """
-        Write bit units randomly.
-
-        Args:
-            bit_devices(list[str]):    Write bit devices. (ex: ["X10", "X20"])
-            values(list[int]):         Write values. each value must be 0 or 1. 0 is OFF, 1 is ON.
-        """
-
-        if len(bit_devices) != len(values):
-            raise ValueError("bit_devices and values must be same length")
-        write_size = len(values)
-        #check values
-        for value in values:
-            if not (value == 0 or value == 1): 
-                raise ValueError("Each value must be 0 or 1. 0 is OFF, 1 is ON.")
-
-        command = const.Commands.RANDOM_WRITE
-        if self.plc_type == const.iQR_SERIES:
-            subcommand = const.SubCommands.THREE
-        else:
-            subcommand = const.SubCommands.ONE
-        
-        request_data = bytes()
-        request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(write_size, mode=const.DT.BIT)
-        for bit_device, value in zip(bit_devices, values):
-            request_data += self._build_device_data(bit_device)
-            #byte value for iQ-R requires 2 byte data
-            if self.plc_type == const.iQR_SERIES:
-                request_data += self._encode_value(value, mode=const.DT.sWORD, isSigned=True)
-            else:
-                request_data += self._encode_value(value, mode=const.DT.BIT, isSigned=True)
-        send_data = self._build_send_data(request_data)
-                    
-        # send data
-        self._send(send_data)
-        # receive data
-        recv_data = self._recv()
-        self._check_command_response(recv_data)
-
-        return None
-
-
-    def read(self, devices:list) -> list:
+    def read(self, devices:list, bool_encode:bool=False) -> list:
         """
         Read a list of mixed data types of mixed device types
         using improvised random read function.
@@ -865,7 +707,8 @@ class Type3E:
 
         Args:
             devices(list[NamedTuple]): Read device elements.
-            Example: Tag(device="D1000", value=Any, datatype="INT", error:"")
+            bool_encode(bool):  Represent value as bool (True) or int (False)
+                                Only applicable to data type BIT
 
         Returns:
             output(list[Tag]): Tag value list
@@ -938,11 +781,13 @@ class Type3E:
                 tag = element._replace(error=e)
                 output.append(tag)
                 continue
-            # recast as uWORD
+            # recast as UWORD
             if element.type ==const.DT.BIT:
                 value = struct.unpack_from('H', recv_data, data_index)[0]
-                # extract bit0 from uWORD
-                value = True if value & (1<<0) else False
+                # extract bit0 from UWORD
+                value = 1 if value & (1<<0) else 0
+                if bool_encode:
+                    value = True if value & (1<<0) else False
             else:
                 value = struct.unpack_from(element.type, recv_data, data_index)[0]
             # format float to have 6 digits decimal at most
@@ -963,7 +808,7 @@ class Type3E:
 
         Args:
             devices(list[NamedTuple]): Write device elements
-            Example: Tag(device="D1000", value=1200, datatype=const.DT.sWORD)
+            Example: Tag(device="D1000", value=1200, datatype=const.DT.SWORD)
         """
 
         command =const.Commands.RANDOM_WRITE
@@ -994,7 +839,7 @@ class Type3E:
         for element in devices:
             # can't combine if bit
             if element.type ==const.DT.BIT:
-                self.batch_write_bits(ref_device=element.device, values=[element.value])
+                self.batch_write(ref_device=element.device, values=[element.value], data_type=element.type)
                 continue
             # get element size in words
             try:
@@ -1005,7 +850,7 @@ class Type3E:
                 # self.__log.exception(e)
                 continue
             # build sure unsigned is not negative
-            if element.type ==const.DT.uWORD or element.type ==const.DT.uDWORD:
+            if element.type ==const.DT.UWORD or element.type ==const.DT.UDWORD:
                 if element.value < 0:
                     element = element._replace(value=element.value * -1)
             # create artificial index
@@ -1118,7 +963,11 @@ class Type3E:
         """
 
         if not (clear_mode == 0 or  clear_mode == 1 or clear_mode == 2):
-            raise ValueError("clear_device must be 0, 1 or 2. 0: does not clear. 1: clear except latch device. 2: clear all.")
+            raise ValueError((
+                "clear_device must be 0, 1 or 2. "
+                "0: does not clear. "
+                "1: clear except latch device. "
+                "2: clear all."))
         if not (force_exec is True or force_exec is False):
             raise ValueError("force_exec must be True or False")
 
@@ -1132,7 +981,7 @@ class Type3E:
           
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(mode, mode=const.DT.sWORD)
+        request_data += self._encode_value(mode, mode=const.DT.SWORD)
         request_data += self._encode_value(clear_mode, mode=const.DT.BIT)
         request_data += self._encode_value(0, mode=const.DT.BIT)
         send_data = self._build_send_data(request_data)
@@ -1156,7 +1005,7 @@ class Type3E:
 
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(0x0001, mode=const.DT.sWORD) #fixed value
+        request_data += self._encode_value(0x0001, mode=const.DT.SWORD) #fixed value
         send_data = self._build_send_data(request_data)
 
         # send data
@@ -1189,7 +1038,7 @@ class Type3E:
           
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(mode, mode=const.DT.sWORD)
+        request_data += self._encode_value(mode, mode=const.DT.SWORD)
         send_data = self._build_send_data(request_data)
 
         # send data
@@ -1212,7 +1061,7 @@ class Type3E:
 
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(0x0001, mode=const.DT.sWORD) #fixed value 
+        request_data += self._encode_value(0x0001, mode=const.DT.SWORD) #fixed value 
         send_data = self._build_send_data(request_data)
 
         # send data
@@ -1235,7 +1084,7 @@ class Type3E:
 
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(0x0001, mode=const.DT.sWORD) #fixed value
+        request_data += self._encode_value(0x0001, mode=const.DT.SWORD) #fixed value
         send_data = self._build_send_data(request_data)
 
         # send data
@@ -1283,7 +1132,7 @@ class Type3E:
         subcommand = const.SubCommands.ZERO
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(len(password), mode=const.DT.sWORD) 
+        request_data += self._encode_value(len(password), mode=const.DT.SWORD) 
         request_data += password.encode()
 
         send_data = self._build_send_data(request_data)
@@ -1325,7 +1174,7 @@ class Type3E:
 
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(len(password), mode=const.DT.sWORD) 
+        request_data += self._encode_value(len(password), mode=const.DT.SWORD) 
         request_data += password.encode()
 
         send_data = self._build_send_data(request_data)
@@ -1381,7 +1230,7 @@ class Type3E:
         """
 
         try:
-            response = self.batch_read_words(ref_device="SD203", read_size=1)[0]
+            response = self.batch_read(ref_device="SD203", read_size=1, data_type=const.DT.UWORD)[0].value
             status = response & ((1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 15))
             # get status
             if status == 0:
@@ -1426,7 +1275,7 @@ class Type3E:
         """
 
         try:
-            status = self.batch_read_words(ref_device="SD200", read_size=1)[0]
+            status = self.batch_read(ref_device="SD200", read_size=1, data_type=const.DT.UWORD)[0].value
             if status == 0:
                 return "Run"
             elif status == 1:
@@ -1448,20 +1297,20 @@ class Type3E:
         """
 
         # enable write time in special relay
-        self.batch_write_bits(ref_device="SM213", values=[1])
+        self.batch_write(ref_device="SM213", values=[1], data_type=const.DT.BIT)
         # read output registers in special register
-        result = self.batch_read_words(ref_device="SD210", read_size=8)
+        result = self.batch_read(ref_device="SD210", read_size=8, data_type=const.DT.UWORD)
         # disable write time in special relay
-        self.batch_write_bits(ref_device="SM213", values=[0])
+        self.batch_write(ref_device="SM213", values=[0], data_type=const.DT.BIT)
 
         # result outputs [yyyy, mm, dd, hh, mm, ss, dow, ?]
         return datetime(
-            year = result[0],
-            month = result[1],
-            day = result[2],
-            hour = result[3],
-            minute = result[4],
-            second = result[5]
+            year = result[0].value,
+            month = result[1].value,
+            day = result[2].value,
+            hour = result[3].value,
+            minute = result[4].value,
+            second = result[5].value
         )
 
 
@@ -1503,13 +1352,18 @@ class Type3E:
         ]
 
         # disable write time in special relay
-        self.random_write_bits(bit_devices=["SM211","SM213"], values=[0,0])
+        self.write(
+            devices=[
+                Tag(device="SM211", value=0, type=const.DT.BIT),
+                Tag(device="SM213", value=0, type=const.DT.BIT),
+            ]
+        )
         # read output registers in special register
-        result = self.batch_write_words(ref_device="SD210", values=dtValues)
+        result = self.batch_write(ref_device="SD210", values=dtValues, data_type=const.DT.UWORD)
         # disable->enable->disable write time in special relay
-        self.batch_write_bits(ref_device="SM210", values=[0])
-        self.batch_write_bits(ref_device="SM210", values=[1])
-        self.batch_write_bits(ref_device="SM210", values=[0])
+        self.batch_write(ref_device="SM210", values=[0], data_type=const.DT.BIT)
+        self.batch_write(ref_device="SM210", values=[1], data_type=const.DT.BIT)
+        self.batch_write(ref_device="SM210", values=[0], data_type=const.DT.BIT)
 
         return f"set_plc_time() to {dt}"
 
@@ -1537,7 +1391,7 @@ class Type3E:
 
         request_data = bytes()
         request_data += self._build_command_data(command, subcommand)
-        request_data += self._encode_value(echo_data_len, mode=const.DT.sWORD) 
+        request_data += self._encode_value(echo_data_len, mode=const.DT.SWORD) 
         request_data += echo_data.encode()
 
         send_data = self._build_send_data(request_data)

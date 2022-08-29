@@ -62,12 +62,14 @@ class DT:
     """
 
     BIT     = 'b' # bit (faking)
-    sWORD   = 'h' # signed WORD (short)
-    uWORD   = 'H' # unsigned WORD (short)
-    sDWORD  = 'i' # signed DWORD (long)
-    uDWORD  = 'I' # unsigned DWORD (long)
+    SWORD   = 'h' # signed WORD (short)
+    UWORD   = 'H' # unsigned WORD (short)
+    SDWORD  = 'i' # signed DWORD (long)
+    UDWORD  = 'I' # unsigned DWORD (long)
     FLOAT   = 'f' # FLOAT
     DOUBLE  = 'd' # DOUBLE
+    LWORD   = 'q' # signed LWORD (long long)
+    ULWORD  = 'Q' # unsigned LWORD (unsigned long long)
 
     def __init__(self):
         """
@@ -87,19 +89,23 @@ class DT:
         if data_type == 'b':
             return 'BIT'
         elif data_type == 'h':
-            return 'sWORD'
+            return 'SWORD'
         elif data_type == 'H':
-            return 'uWORD'
+            return 'UWORD'
         elif data_type == 'i':
-            return 'sDWORD'
+            return 'SDWORD'
         elif data_type == 'I':
-            return 'uDWORD'
+            return 'UDWORD'
         elif data_type == 'f':
             return 'FLOAT'
         elif data_type == 'd':
             return 'DOUBLE'
+        elif data_type == 'q':
+            return 'LWORD'
+        elif data_type == 'Q':
+            return 'ULWORD'
         else:
-            raise DataTypeError(f'Unknown data type "{datatype}"')
+            raise DataTypeError(f'Unknown data type "{data_type}"')
 
 
     def get_dt_size(data_type:str):
@@ -112,11 +118,9 @@ class DT:
 
         if data_type == 'b' or data_type == 'h' or data_type == 'H':
             return 2
-        elif data_type == 'i' or data_type == 'I':
+        elif data_type == 'i' or data_type == 'I' or data_type == 'f':
             return 4
-        elif data_type == 'f':
-            return 4
-        elif data_type == 'd':
+        elif data_type == 'd' or data_type == 'q' or data_type == 'Q':
             return 8
         else:
             raise DataTypeError(f'Data type "{data_type}" is not supported.')

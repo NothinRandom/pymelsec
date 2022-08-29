@@ -1,5 +1,19 @@
+v0.2.0:
+* breaking changes
+    * change case for data type (e.g. sWORD->SWORD, uWORD->UWORD)
+    * deprecate `def batch_read_{words, bits}`
+        * add `def batch_read` to handle all data types
+    * add bool_encode to `def read`
+    * deprecate `def batch_write_{words, bits}`
+        * add `def batch_write` to handle all data types
+    * deprecate `def random_{read, write, write_bits}`
+    * write bit functions handles int (1) or bool (True)
+    * add LWORD/ULWORD in case Mitsubishi decides to support them
+    * update README
+
 v0.1.2:
 * update from read_cpu_type to read_cpu_model
+* update README
 
 v0.1.1:
 * fix missing error classes in type3e.py

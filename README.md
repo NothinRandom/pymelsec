@@ -52,10 +52,10 @@ __READ_TAGS = [
     Tag(device="X1", type=DT.BIT),      # Test BIT
     Tag(device="X2", type=DT.BIT),      # Test BIT
     Tag(device="X3", type=DT.BIT),      # Test BIT
-    Tag(device="D200", type=DT.sWORD),  # Test WORD signed
-    Tag(device="D201", type=DT.uWORD),  # Test WORD unsigned
-    Tag(device="D202", type=DT.sDWORD), # Test DWORD signed
-    Tag(device="D204", type=DT.uDWORD), # Test DWORD unsigned
+    Tag(device="D200", type=DT.SWORD),  # Test WORD signed
+    Tag(device="D201", type=DT.UWORD),  # Test WORD unsigned
+    Tag(device="D202", type=DT.SDWORD), # Test DWORD signed
+    Tag(device="D204", type=DT.UDWORD), # Test DWORD unsigned
     Tag(device="D206", type=DT.FLOAT),  # Test FLOAT
     Tag(device="D208", type=DT.DOUBLE), # Test DOUBLE
 ]
@@ -65,10 +65,10 @@ __WRITE_TAGS = [
     Tag(device="X1", value=1, type=DT.BIT),                     # Test BIT
     Tag(device="X2", value=0, type=DT.BIT),                     # Test BIT
     Tag(device="X3", value=1, type=DT.BIT),                     # Test BIT
-    Tag(device="D200", value=-20000, type=DT.sWORD),            # Test WORD signed
-    Tag(device="D201", value=20100, type=DT.uWORD),             # Test WORD unsigned
-    Tag(device="D202", value=-20200000, type=DT.sDWORD),        # Test DWORD signed
-    Tag(device="D204", value=20400000, type=DT.uDWORD),         # Test DWORD unsigned
+    Tag(device="D200", value=-20000, type=DT.SWORD),            # Test WORD signed
+    Tag(device="D201", value=20100, type=DT.UWORD),             # Test WORD unsigned
+    Tag(device="D202", value=-20200000, type=DT.SDWORD),        # Test DWORD signed
+    Tag(device="D204", value=20400000, type=DT.UDWORD),         # Test DWORD unsigned
     Tag(device="D206", value=-206.206206, type=DT.FLOAT),       # Test FLOAT
     Tag(device="D208", value=208.208208208208, type=DT.DOUBLE), # Test DOUBLE
 ]
@@ -97,145 +97,6 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
 
 
     """
-    Read a batch of words
-        example: read 5 contiguous words starting from "D0" to "D4"
-
-    Args:
-        ref_device(str)[Required]: the device and index to start
-            example: ref_device="D0"
-        read_size(int)[Required]: number of points to read
-            example: read_size=5
-    Returns:
-        word_values(list[int]): list of integers
-            example: [0, 10, 20, 30, 40]
-    """
-    read_result = plc.batch_read_words(ref_device="D0", read_size=5)
-
-
-
-    """
-    Read a batch of bits
-        example: read 5 contiguous bits starting from "X0" to "X4"
-
-    Args:
-        ref_device(str)[Required]: the device and index to start
-            example: ref_device="X0"
-        read_size(int)[Required]: number of points to read
-            example: read_size=5
-    Returns:
-        bit_values(list[int]): list of integers
-            example: [0, 1, 1, 1, 1]
-    Notes:
-        0 (False)
-        1 (True)
-    """
-    read_result = plc.batch_read_bits(ref_device="X0", read_size=5)
-
-
-
-    """
-    Write a batch of words
-        example: write 5 contiguous words starting from "D0" to "D4"
-
-    Args:
-        ref_device(str)[Required]: the device and index to start
-            example: ref_device="D0"
-        values(list[int])[Required]: list of integers to write
-            example: read_size=5
-    Returns:
-        bit_values(list[int]): list of integers
-            example: values=[0, 10, 20, 30, 40]
-    Notes:
-        future version will consolidate ref_device/values into a single Tag
-    """
-    plc.batch_write_words(ref_device="D0", values=[0, 10, 20, 30, 40])
-
-
-
-    """
-    Write a batch of bits
-        example: write 5 contiguous bits starting from "Y0" to "Y4"
-
-    Args:
-        ref_device(str)[Required]: the device and index to start
-            example: ref_device="Y0"
-        values(list[int])[Required]: list of integers to write
-            example: values=[0, 1, 1, 1, 1]
-    Notes:
-        0 (False)
-        1 (True)
-        future version will consolidate ref_device/values into a single Tag
-    """
-    plc.batch_write_bits(ref_device="Y0", values=[0, 1, 0, 1, 0])
-
-
-
-    """
-    Read mixed WORD and DWORD
-        example: read WORDS "D1000" and "D2000", and DWORD "D3000".
-
-    Args:
-        word_devices(list[str])[Required]: list of the device and index
-            example: word_devices=["D1000", "D2000"]
-        word_devices(list[str])[Required]: list of the device and index
-            example: dword_devices=["D3000"]
-    Returns:
-        tuple: list of WORD result, list of DWORD result
-            example: ([0, 10], [100]) 
-    """
-    word_result, dword_result = plc.random_read(
-        word_devices=["D1000", "D2000"],
-        dword_devices=["D3000"]
-    )
-
-
-
-    """
-    Write mixed WORD and DWORD
-        example: write 1000 to "D1000", 2000 to "D2000", and 655362 to DWORD "D1004"
-
-    Args:
-        word_devices(list[str])[Required]: list of the device and index
-            example: word_devices=["D1000", "D2000"]
-        word_values(list[int])[Required]: list of integer values
-            example: word_values=[1000, 2000]
-        dword_devices(list[str])[Required]: list of the device and index
-            example: dword_devices=["D1004"]
-        dword_values(list[int])[Required]: list of integer values
-            example: dword_values=[655362]
-    Returns:
-        tuple: list of WORD result, list of DWORD result
-            example: ([0, 10], [100])
-    Notes:
-        future version will consolidate x_devices/x_values into a Tag
-    """
-    plc.random_write(
-        word_devices=["D1000", "D1002"],
-        word_values=[1000, 2000], 
-        dword_devices=["D1004"],
-        dword_values=[655362]
-    )
-
-
-
-    """
-    Write mixed bit devices
-        example: write 1(ON) to "X0", 0(OFF) to "X10"
-
-    Args:
-        bit_devices(list[str])[Required]: list of device and index
-            example: bit_devices=["X0", "X10"
-        values(list[int])[Required]: list of integers to write
-            example: values=[1, 0]
-    Notes:
-        0 (False)
-        1 (True)
-    """
-    plc.random_write_bits(bit_devices=["X0", "X10"], values=[1, 0])
-
-
-
-    """
     Write mixed devices
         example: write randomly mixed data types
 
@@ -256,7 +117,7 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
 
     """
     Read mixed devices
-        example: write randomly mixed data types
+        example: read randomly mixed data types
 
     Args:
         devices(list[Tag])[Required]: list of data class Tag
@@ -265,7 +126,6 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
         result(list[Tag]): list of Tag
             example: [
                         Tag(device='X0',value=False,type='BIT',error='Success'),
-                        Tag(device='X1',value=True,type='BIT',error='Success'),
                         ...
                         Tag(device='D208',value=208.208208208208,type='DOUBLE',error='Success')
                      ]
@@ -281,6 +141,81 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
                 print(f'device:{tag.device}, value:{tag.value}, data_type:{tag.type}, status:{tag.error}')
     """
     read_result = plc.read(devices=__READ_TAGS)
+
+
+
+    """
+    Write a sequence of data types
+        example: write 5 consecutive signed words starting at "D100"
+
+    Args:
+        ref_device(str)[Required]: the reference device
+            example: ref_device="D100"
+        read_size(int)[Required]: number of points to read
+            example: read_size=5
+        data_type(str)[Required]: data type
+            example: data_type=DT.SWORD
+
+    Notes:
+        look at __READ_TAGS to understand named tuple setup
+        error status defaults to "Success" and shows error reason on actual error
+            example: [
+                        Tag(device='X0',value=None,type='X',error=DataTypeError('Data type "X" is not supported.'))
+                     ]
+        to access the fields of each entry in result
+            for tag in read_result:
+                print(f'device:{tag.device}, value:{tag.value}, data_type:{tag.type}, status:{tag.error}')
+    """
+    plc.batch_write(ref_device="D100", values=[-100,100,-1000,1000,10000], data_type=DT.SWORD)
+    # additional examples:
+    plc.batch_write(ref_device="D100", values=[-100.0,100.1,-1000.2,1000.3,10000.4], data_type=DT.FLOAT)
+    # any of these bit representation is valid
+    plc.batch_write(ref_device="X0", values=[False,True,False,True,False], data_type=DT.BIT)
+    plc.batch_write(ref_device="X0", values=[0,1,0,1,0], data_type=DT.BIT)
+    plc.batch_write(ref_device="X0", values=[False,1,0,True,0], data_type=DT.BIT)
+
+
+    """
+    Read a sequence of data types
+        example: read 5 consecutive signed words starting at "D100"
+
+    Args:
+        ref_device(str)[Required]: the reference device
+            example: ref_device="D100"
+        read_size(int)[Required]: number of points to read
+            example: read_size=5
+        data_type(str)[Required]: data type
+            example: data_type=DT.SWORD
+        bool_encode(bool): encode boolean value when reading bits
+            example: bool_encode=False (default)
+                     bool_encode=True
+        decode(bool): decode data or keep as raw bytes
+            example: decode=True (default)
+                     decode=False
+    Returns:
+        result(list[Tag]): list of Tag
+            example: [
+                        Tag(device='D100',value=-100,type='SWORD',error='Success'),
+                        ...
+                        Tag(device='D104',value=10000,type='SWORD',error='Success')
+                     ]
+    Notes:
+        look at __READ_TAGS to understand named tuple setup
+        error status defaults to "Success" and shows error reason on actual error
+            example: [
+                        Tag(device='X0',value=None,type='X',error=DataTypeError('Data type "X" is not supported.'))
+                     ]
+        to access the fields of each entry in result
+            for tag in read_result:
+                print(f'device:{tag.device}, value:{tag.value}, data_type:{tag.type}, status:{tag.error}')
+    """
+    read_result = plc.batch_read(ref_device="D100", read_size=5, data_type=DT.SWORD)
+    # additional examples:
+    # read raw bytes
+    read_result = plc.batch_read(ref_device="D100", read_size=5, data_type=DT.SWORD, decode=False)
+    # read bits and return type boolean
+    read_result = plc.batch_read(ref_device="X0", read_size=5, data_type=DT.BIT, bool_encode=True)
+
 ```
 
 ### 4.  Utility Functions
