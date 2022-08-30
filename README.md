@@ -58,6 +58,8 @@ __READ_TAGS = [
     Tag(device="D204", type=DT.UDWORD), # Test DWORD unsigned
     Tag(device="D206", type=DT.FLOAT),  # Test FLOAT
     Tag(device="D208", type=DT.DOUBLE), # Test DOUBLE
+    Tag(device="D300", type=DT.SLWORD), # test LWORD signed (unofficial)
+    Tag(device="D304", type=DT.ULWORD), # test LWORD unsigned (unofficial)
 ]
 
 __WRITE_TAGS = [
@@ -71,16 +73,14 @@ __WRITE_TAGS = [
     Tag(device="D204", value=20400000, type=DT.UDWORD),         # Test DWORD unsigned
     Tag(device="D206", value=-206.206206, type=DT.FLOAT),       # Test FLOAT
     Tag(device="D208", value=208.208208208208, type=DT.DOUBLE), # Test DOUBLE
+    Tag(device="D300", value=-10000000, type=DT.SLWORD),        # test LWORD signed (unofficial)
+    Tag(device="D304", value=10000000, type=DT.ULWORD),         # test LWORD unsigned (unofficial)
 ]
-
-### NOTE:
-# LWORD (signed/unsigned) is not available in Mitsubishi,
-# but technically could be supported since it occupies 8 bytes like a DOUBLE.
 
 __HOST = '192.168.1.15' # REQUIRED
 __PORT = 5007           # OPTIONAL: default is 5007
 __PLC_TYPE = 'iQ-R'     # OPTIONAL: default is 'Q'
-                        # options: 'L', 'QnA', 'iQ-L', 'iQ-R'
+                        #   options: 'L', 'QnA', 'iQ-L', 'iQ-R'
 
 with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
     """
@@ -105,9 +105,15 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
             example: devices=__WRITE_TAGS
     Returns:
         result(list[Tag]): list of incorrectly defined Tag
-            example: [
-                        Tag(device='X0',value=1,type='X',error=DataTypeError('Data type "X" is not supported.'))
-                     ]
+            example:
+                [
+                    Tag(
+                        device='X0',
+                        value=1,
+                        type='X',
+                        error=DataTypeError('Data type "X" is not supported.')
+                    )
+                ]
     Notes:
         look at __WRITE_TAGS to understand named tuple setup
     """
@@ -124,21 +130,30 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
             example: devices=__WRITE_TAGS
     Returns:
         result(list[Tag]): list of Tag
-            example: [
-                        Tag(device='X0',value=False,type='BIT',error='Success'),
-                        ...
-                        Tag(device='D208',value=208.208208208208,type='DOUBLE',error='Success')
-                     ]
-
+            example:
+                [
+                    Tag(device='X0',value=False,type='BIT',error='Success'),
+                    ...
+                    Tag(device='D208',value=208.208208208208,type='DOUBLE',error='Success')
+                ]
     Notes:
         look at __READ_TAGS to understand named tuple setup
         error status defaults to "Success" and shows error reason on actual error
-            example: [
-                        Tag(device='X0',value=None,type='X',error=DataTypeError('Data type "X" is not supported.'))
-                     ]
+            example:
+                [
+                    Tag(
+                        device='X0',
+                        value=None,
+                        type='X',
+                        error=DataTypeError('Data type "X" is not supported.')
+                    )
+                ]
         to access the fields of each entry in result
             for tag in read_result:
-                print(f'device:{tag.device}, value:{tag.value}, data_type:{tag.type}, status:{tag.error}')
+                print((f'device:{tag.device}, '
+                        f'value:{tag.value}, '
+                        f'data_type:{tag.type}, '
+                        f'status:{tag.error}'))
     """
     read_result = plc.read(devices=__READ_TAGS)
 
@@ -155,24 +170,52 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
             example: read_size=5
         data_type(str)[Required]: data type
             example: data_type=DT.SWORD
-
     Notes:
         look at __READ_TAGS to understand named tuple setup
         error status defaults to "Success" and shows error reason on actual error
-            example: [
-                        Tag(device='X0',value=None,type='X',error=DataTypeError('Data type "X" is not supported.'))
-                     ]
+            example:
+                [
+                    Tag(
+                        device='X0',
+                        value=None,
+                        type='X',
+                        error=DataTypeError('Data type "X" is not supported.')
+                    )
+                ]
         to access the fields of each entry in result
             for tag in read_result:
-                print(f'device:{tag.device}, value:{tag.value}, data_type:{tag.type}, status:{tag.error}')
+                print((f'device:{tag.device}, '
+                        f'value:{tag.value}, '
+                        f'data_type:{tag.type}, '
+                        f'status:{tag.error}'))
     """
-    plc.batch_write(ref_device="D100", values=[-100,100,-1000,1000,10000], data_type=DT.SWORD)
+    plc.batch_write(
+        ref_device="D100",
+        values=[-100,100,-1000,1000,10000],
+        data_type=DT.SWORD
+    )
     # additional examples:
-    plc.batch_write(ref_device="D100", values=[-100.0,100.1,-1000.2,1000.3,10000.4], data_type=DT.FLOAT)
+    plc.batch_write(
+        ref_device="D100",
+        values=[-100.0,100.1,-1000.2,1000.3,10000.4],
+        data_type=DT.FLOAT
+    )
     # any of these bit representation is valid
-    plc.batch_write(ref_device="X0", values=[False,True,False,True,False], data_type=DT.BIT)
-    plc.batch_write(ref_device="X0", values=[0,1,0,1,0], data_type=DT.BIT)
-    plc.batch_write(ref_device="X0", values=[False,1,0,True,0], data_type=DT.BIT)
+    plc.batch_write(
+        ref_device="X0",
+        values=[False,True,False,True,False],
+        data_type=DT.BIT
+    )
+    plc.batch_write(
+        ref_device="X0",
+        values=[0,1,0,1,0],
+        data_type=DT.BIT
+    )
+    plc.batch_write(
+        ref_device="X0",
+        values=[False,1,0,True,0],
+        data_type=DT.BIT
+    )
 
 
     """
@@ -194,27 +237,51 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
                      decode=False
     Returns:
         result(list[Tag]): list of Tag
-            example: [
-                        Tag(device='D100',value=-100,type='SWORD',error='Success'),
-                        ...
-                        Tag(device='D104',value=10000,type='SWORD',error='Success')
-                     ]
+            example:
+                [
+                    Tag(device='D100',value=-100,type='SWORD',error='Success'),
+                    ...
+                    Tag(device='D104',value=10000,type='SWORD',error='Success')
+                ]
     Notes:
         look at __READ_TAGS to understand named tuple setup
         error status defaults to "Success" and shows error reason on actual error
-            example: [
-                        Tag(device='X0',value=None,type='X',error=DataTypeError('Data type "X" is not supported.'))
-                     ]
+            example:
+                [
+                    Tag(
+                        device='X0',
+                        value=None,
+                        type='X',
+                        error=DataTypeError('Data type "X" is not supported.')
+                    )
+                ]
         to access the fields of each entry in result
             for tag in read_result:
-                print(f'device:{tag.device}, value:{tag.value}, data_type:{tag.type}, status:{tag.error}')
+                print((f'device:{tag.device}, '
+                        f'value:{tag.value}, '
+                        f'data_type:{tag.type}, '
+                        f'status:{tag.error}'))
     """
-    read_result = plc.batch_read(ref_device="D100", read_size=5, data_type=DT.SWORD)
+    read_result = plc.batch_read(
+        ref_device="D100", 
+        read_size=5, 
+        data_type=DT.SWORD
+    )
     # additional examples:
     # read raw bytes
-    read_result = plc.batch_read(ref_device="D100", read_size=5, data_type=DT.SWORD, decode=False)
+    read_result = plc.batch_read(
+        ref_device="D100", 
+        read_size=5, 
+        data_type=DT.SWORD, 
+        decode=False
+    )
     # read bits and return type boolean
-    read_result = plc.batch_read(ref_device="X0", read_size=5, data_type=DT.BIT, bool_encode=True)
+    read_result = plc.batch_read(
+        ref_device="X0", 
+        read_size=5, 
+        data_type=DT.BIT, 
+        bool_encode=True
+    )
 
 ```
 

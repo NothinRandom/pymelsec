@@ -68,7 +68,7 @@ class DT:
     UDWORD  = 'I' # unsigned DWORD (long)
     FLOAT   = 'f' # FLOAT
     DOUBLE  = 'd' # DOUBLE
-    LWORD   = 'q' # signed LWORD (long long)
+    SLWORD  = 'q' # signed LWORD (long long)
     ULWORD  = 'Q' # unsigned LWORD (unsigned long long)
 
     def __init__(self):
@@ -101,7 +101,7 @@ class DT:
         elif data_type == 'd':
             return 'DOUBLE'
         elif data_type == 'q':
-            return 'LWORD'
+            return 'SLWORD'
         elif data_type == 'Q':
             return 'ULWORD'
         else:
