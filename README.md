@@ -48,33 +48,33 @@ from pymelsec.tag import Tag
 
 
 __READ_TAGS = [
-    Tag(device="X0", type=DT.BIT),      # Test BIT
-    Tag(device="X1", type=DT.BIT),      # Test BIT
-    Tag(device="X2", type=DT.BIT),      # Test BIT
-    Tag(device="X3", type=DT.BIT),      # Test BIT
-    Tag(device="D200", type=DT.SWORD),  # Test WORD signed
-    Tag(device="D201", type=DT.UWORD),  # Test WORD unsigned
-    Tag(device="D202", type=DT.SDWORD), # Test DWORD signed
-    Tag(device="D204", type=DT.UDWORD), # Test DWORD unsigned
-    Tag(device="D206", type=DT.FLOAT),  # Test FLOAT
-    Tag(device="D208", type=DT.DOUBLE), # Test DOUBLE
-    Tag(device="D300", type=DT.SLWORD), # test LWORD signed (unofficial)
-    Tag(device="D304", type=DT.ULWORD), # test LWORD unsigned (unofficial)
+    Tag(device="X0", type=DT.BIT),      # BIT
+    Tag(device="X1", type=DT.BIT),      # BIT
+    Tag(device="X2", type=DT.BIT),      # BIT
+    Tag(device="X3", type=DT.BIT),      # BIT
+    Tag(device="D200", type=DT.SWORD),  # WORD signed
+    Tag(device="D201", type=DT.UWORD),  # WORD unsigned
+    Tag(device="D202", type=DT.SDWORD), # DWORD signed
+    Tag(device="D204", type=DT.UDWORD), # DWORD unsigned
+    Tag(device="D206", type=DT.FLOAT),  # FLOAT
+    Tag(device="D208", type=DT.DOUBLE), # DOUBLE
+    Tag(device="D300", type=DT.SLWORD), # LWORD signed (unofficial)
+    Tag(device="D304", type=DT.ULWORD), # LWORD unsigned (unofficial)
 ]
 
 __WRITE_TAGS = [
-    Tag(device="X0", value=0, type=DT.BIT),                     # Test BIT
-    Tag(device="X1", value=1, type=DT.BIT),                     # Test BIT
-    Tag(device="X2", value=0, type=DT.BIT),                     # Test BIT
-    Tag(device="X3", value=1, type=DT.BIT),                     # Test BIT
-    Tag(device="D200", value=-20000, type=DT.SWORD),            # Test WORD signed
-    Tag(device="D201", value=20100, type=DT.UWORD),             # Test WORD unsigned
-    Tag(device="D202", value=-20200000, type=DT.SDWORD),        # Test DWORD signed
-    Tag(device="D204", value=20400000, type=DT.UDWORD),         # Test DWORD unsigned
-    Tag(device="D206", value=-206.206206, type=DT.FLOAT),       # Test FLOAT
-    Tag(device="D208", value=208.208208208208, type=DT.DOUBLE), # Test DOUBLE
-    Tag(device="D300", value=-10000000, type=DT.SLWORD),        # test LWORD signed (unofficial)
-    Tag(device="D304", value=10000000, type=DT.ULWORD),         # test LWORD unsigned (unofficial)
+    Tag(device="X0", value=0, type=DT.BIT),                     # BIT
+    Tag(device="X1", value=1, type=DT.BIT),                     # BIT
+    Tag(device="X2", value=0, type=DT.BIT),                     # BIT
+    Tag(device="X3", value=1, type=DT.BIT),                     # BIT
+    Tag(device="D200", value=-20000, type=DT.SWORD),            # WORD signed
+    Tag(device="D201", value=20100, type=DT.UWORD),             # WORD unsigned
+    Tag(device="D202", value=-20200000, type=DT.SDWORD),        # DWORD signed
+    Tag(device="D204", value=20400000, type=DT.UDWORD),         # DWORD unsigned
+    Tag(device="D206", value=-206.206206, type=DT.FLOAT),       # FLOAT
+    Tag(device="D208", value=208.208208208208, type=DT.DOUBLE), # DOUBLE
+    Tag(device="D300", value=-10000000, type=DT.SLWORD),        # LWORD signed (unofficial)
+    Tag(device="D304", value=10000000, type=DT.ULWORD),         # LWORD unsigned (unofficial)
 ]
 
 __HOST = '192.168.1.15' # REQUIRED
@@ -387,8 +387,8 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
         CPUModel(named tuple): contains fields "name" and "code"
         example: CPUModel(name='R08ENCPU', code='4806')
     Notes:
-        to access field type: cpu_model.name (e.g. 'R08ENCPU')
-        to access field cause: cpu_model.code (e.g. '4806')
+        to access field name: cpu_model.name (e.g. 'R08ENCPU')
+        to access field code: cpu_model.code (e.g. '4806')
     """
     cpu_model = plc.read_cpu_model()
 
@@ -447,7 +447,7 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
 
     Returns:
         datetime object
-            example: 2022-08-23 00:07:34.589665
+            example: 2022-08-23 00:07:34
     Notes:
         PLC only has precision at seconds level
     """
