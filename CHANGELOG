@@ -1,3 +1,7 @@
+v0.2.2:
+* remove "Success" from error; now empty string
+* update README
+
 v0.2.1:
 * unofficially add SLWORD and ULWORD support
     * Mitsubishi doesn't officially support these data types

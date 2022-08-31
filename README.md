@@ -132,13 +132,13 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
         result(list[Tag]): list of Tag
             example:
                 [
-                    Tag(device='X0',value=False,type='BIT',error='Success'),
+                    Tag(device='X0',value=False,type='BIT',error=''),
                     ...
-                    Tag(device='D208',value=208.208208208208,type='DOUBLE',error='Success')
+                    Tag(device='D208',value=208.208208208208,type='DOUBLE',error='')
                 ]
     Notes:
         look at __READ_TAGS to understand named tuple setup
-        error status defaults to "Success" and shows error reason on actual error
+        error status shows error reason
             example:
                 [
                     Tag(
@@ -172,7 +172,7 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
             example: data_type=DT.SWORD
     Notes:
         look at __READ_TAGS to understand named tuple setup
-        error status defaults to "Success" and shows error reason on actual error
+        error status shows error reason
             example:
                 [
                     Tag(
@@ -239,13 +239,13 @@ with Type4E(host=__HOST, port=__PORT, plc_type=__PLC_TYPE) as plc:
         result(list[Tag]): list of Tag
             example:
                 [
-                    Tag(device='D100',value=-100,type='SWORD',error='Success'),
+                    Tag(device='D100',value=-100,type='SWORD',error=''),
                     ...
-                    Tag(device='D104',value=10000,type='SWORD',error='Success')
+                    Tag(device='D104',value=10000,type='SWORD',error='')
                 ]
     Notes:
         look at __READ_TAGS to understand named tuple setup
-        error status defaults to "Success" and shows error reason on actual error
+        error status shows error reason
             example:
                 [
                     Tag(

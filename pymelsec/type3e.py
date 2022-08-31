@@ -579,7 +579,7 @@ class Type3E:
                             device=f"{device_type}{device_index}",
                             value=bit_value, 
                             type=data_type_name, 
-                            error="Success"
+                            error=""
                         )
                     )
                     device_index += 1
@@ -595,7 +595,7 @@ class Type3E:
                             device=f"{device_type}{device_index}",
                             value=bit_value, 
                             type=data_type_name, 
-                            error="Success"
+                            error=""
                         )
                     )
                     data_index += byte_size
@@ -610,7 +610,7 @@ class Type3E:
                             device=f"{device_type}{device_index}", 
                             value=value, 
                             type=data_type_name, 
-                            error="Success"
+                            error=""
                         )
                     )
                     data_index += data_type_size
@@ -622,7 +622,7 @@ class Type3E:
                             device=f"{device_type}{device_index}",
                             value=recv_data[data_index:data_index+data_type_size], 
                             type=data_type_name, 
-                            error="Success"
+                            error=""
                         )
                     )
                     data_index += data_type_size
@@ -794,7 +794,7 @@ class Type3E:
             if element.type == 'f':
                 value = float(f"{value:.6f}".rstrip("0"))
             # update value
-            tag = element._replace(value=value, type=const.DT.get_dt_name(element.type), error="Success")
+            tag = element._replace(value=value, type=const.DT.get_dt_name(element.type), error="")
             output.append(tag)
             data_index += size
 
