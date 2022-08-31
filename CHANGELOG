@@ -1,3 +1,6 @@
+v0.2.3:
+* set default tag fields as empty string
+
 v0.2.2:
 * remove "Success" from error; now empty string
 * update README

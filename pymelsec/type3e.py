@@ -578,8 +578,7 @@ class Type3E:
                         Tag(
                             device=f"{device_type}{device_index}",
                             value=bit_value, 
-                            type=data_type_name, 
-                            error=""
+                            type=data_type_name
                         )
                     )
                     device_index += 1
@@ -594,8 +593,7 @@ class Type3E:
                         Tag(
                             device=f"{device_type}{device_index}",
                             value=bit_value, 
-                            type=data_type_name, 
-                            error=""
+                            type=data_type_name
                         )
                     )
                     data_index += byte_size
@@ -609,8 +607,7 @@ class Type3E:
                         Tag(
                             device=f"{device_type}{device_index}", 
                             value=value, 
-                            type=data_type_name, 
-                            error=""
+                            type=data_type_name
                         )
                     )
                     data_index += data_type_size
@@ -621,8 +618,7 @@ class Type3E:
                         Tag(
                             device=f"{device_type}{device_index}",
                             value=recv_data[data_index:data_index+data_type_size], 
-                            type=data_type_name, 
-                            error=""
+                            type=data_type_name
                         )
                     )
                     data_index += data_type_size

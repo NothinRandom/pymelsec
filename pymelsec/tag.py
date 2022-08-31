@@ -12,8 +12,8 @@ __all__ = ["Tag"]
 class Tag(NamedTuple):
     device: str                     #: device address (e.g. "D200")
     value:  Optional[Any] = None    #: value read/written, may be ``None`` on error
-    type:   Optional[str] = None    #: data type of device
-    error:  Optional[str] = None    #: error message if unsuccessful, else ``None``
+    type:   Optional[str] = ''      #: data type of device
+    error:  Optional[str] = ''      #: error message if unsuccessful, else ``None``
 
 
     def __bool__(self):
