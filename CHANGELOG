@@ -1,3 +1,6 @@
+v0.2.4:
+* fix typo in tag.py
+
 v0.2.3:
 * set default tag fields as empty string
 

@@ -31,10 +31,11 @@ class Tag(NamedTuple):
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
-            f"device={self.device!r},"
-            f"value={self.value!r},"
-            f"type={self.type!r},"
-            f"error={self.error!r})"
+            f"device={self.device!r}, "
+            f"value={self.value!r}, "
+            f"type={self.type!r}, "
+            f"error={self.error!r}"
+            ")"
         )
 
 
@@ -48,12 +49,17 @@ class CPUModel(NamedTuple):
 
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(type={type.name!r}, info={self.code!r})"
+        return (
+            f"{self.__class__.__name__}("
+            f"type={self.name!r}, "
+            f"info={self.code!r}"
+            ")"
+        )
 
 
 class CPUStatus(NamedTuple):
-    status: Optional[str] = None    # status (e.g. 'Stop')
-    cause:  Optional[str] = None    # cause (e.g. 'By Error')
+    status: Optional[str] = ''  # status (e.g. 'Stop')
+    cause:  Optional[str] = ''  # cause (e.g. 'By Error')
 
 
     def __str__(self):
@@ -61,7 +67,12 @@ class CPUStatus(NamedTuple):
 
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(status={type.status!r}, cause={self.cause!r})"
+        return (
+            f"{self.__class__.__name__}("
+            f"status={self.status!r}, "
+            f"cause={self.cause!r}"
+            ")"
+        )
 
 
 class LoopbackTest(NamedTuple):
