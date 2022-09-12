@@ -1,3 +1,7 @@
+v0.2.5:
+* moved various functions into utility.py
+* add compabitility when reusing result from previous read
+
 v0.2.4:
 * fix typo in tag.py
 

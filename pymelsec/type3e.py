@@ -3,7 +3,6 @@ This file implements MELSEC Communication type 3E.
 """
 
 import logging
-import re
 import socket
 import struct
 import time
@@ -23,27 +22,10 @@ from .tag import (
     CPUStatus,
     LoopbackTest
 )
-
-
-def get_device_number(device:str) -> str:
-    """
-    Extract device number.
-
-    Args:
-        device(str):    device memory space (e.g. "D1000")
-    Returns:
-        device_index(str): device memory index (e.g. "1000")
-    Example:
-        "D1000" -> "1000"
-        "X0x1A" -> "0x1A
-    """
-    device_num = re.search(r"\d.*", device)
-    if device_num is None:
-        raise ValueError(f'Invalid device number "{device}"')
-    else:
-        device_index = device_num.group(0)
-
-    return device_index
+from .utility import (
+    get_device_index, 
+    get_device_type
+)
 
 
 class Type3E:
@@ -285,12 +267,12 @@ class Type3E:
             self._set_comm_type(comm_type)
         if network:
             try:
-                self.network = struct.pack('<B', network)
+                self.network = struct.pack('B', network)
             except:
                 raise ValueError("network must be 0 <= network <= 255")
         if pc:
             try:
-                self.pc = struct.pack('<B', pc)
+                self.pc = struct.pack('B', pc)
             except:
                 raise ValueError("pc must be 0 <= pc <= 255") 
         if dest_moduleio:
@@ -300,7 +282,7 @@ class Type3E:
                 raise ValueError("dest_moduleio must be 0 <= dest_moduleio <= 65535") 
         if dest_modulesta:
             try:
-                self.dest_modulesta = struct.pack('<B', dest_modulesta)
+                self.dest_modulesta = struct.pack('B', dest_modulesta)
             except:
                 raise ValueError("dest_modulesta must be 0 <= dest_modulesta <= 255") 
         if timer_sec:
@@ -376,19 +358,15 @@ class Type3E:
         """
 
         device_data = bytes()
-
-        device_type = re.search(r"\D+", device)
-        if device_type is None:
-            raise ValueError("Invalid device")
-        else:
-            device_type = device_type.group(0)
+        
+        device_type = get_device_type(device=device)
 
         if self.comm_type == const.COMMTYPE_BINARY:
             device_code, device_base = const.DeviceConstants.get_binary_device_code(
                 plc_type=self.plc_type,
                 device_name=device_type
                 )
-            device_number = int(get_device_number(device), device_base)
+            device_number = int(get_device_index(device), device_base)
             if self.plc_type is const.iQR_SERIES:
                 device_data += struct.pack(f'{self.endian}IH', device_number, device_code)
             else:
@@ -402,7 +380,7 @@ class Type3E:
                 plc_type=self.plc_type,
                 device_name=device_type
                 )
-            device_number = str(int(get_device_number(device), device_base))
+            device_number = str(int(get_device_index(device), device_base))
             if self.plc_type is const.iQR_SERIES:
                 device_data += device_code.encode()
                 device_data += f'{device_number:08x}'.upper().encode()
@@ -413,7 +391,7 @@ class Type3E:
         return device_data
 
 
-    def _encode_value(self, value:int, mode:str=const.DT.SWORD, isSigned:bool=False) -> bytes:
+    def _encode_value(self, value, mode:str=const.DT.SWORD, isSigned:bool=False) -> bytes:
         """
         Encode value data to byte.
 
@@ -428,7 +406,8 @@ class Type3E:
 
         try:
             if not isSigned:
-                mode = mode.upper()
+                if mode == 'b' or mode == "h" or mode == "i" or mode == "q":
+                    mode = mode.upper()
             value_byte = struct.pack(f'{self.endian}{mode}', value)
             if self.comm_type != const.COMMTYPE_BINARY:
                 if mode.lower() == const.DT.BIT:
@@ -524,12 +503,14 @@ class Type3E:
             result(list[Tag]):  Tag list
         """
 
+        # reconvert data type
+        data_type = const.DT.get_struct_dt(data_type=data_type)
         # get data type name (e.g. "SWORD") and byte size (e.g. 2)
         data_type_name = const.DT.get_dt_name(data_type=data_type)
         data_type_size = const.DT.get_dt_size(data_type=data_type)
         # get device and reference index
-        device_type = re.search(r"\D+", ref_device).group(0)
-        device_index = int(re.search(r"\d+", ref_device).group(0))
+        device_type = get_device_type(device=ref_device)
+        device_index = int(get_device_index(device=ref_device))
 
         command = const.Commands.BATCH_READ
         if data_type == const.DT.BIT:
@@ -564,7 +545,7 @@ class Type3E:
                 for index in range(read_size):
                     data_index = index//2 + response_data_index
                     if decode:
-                        value = struct.unpack('<B', recv_data[data_index:data_index+1])[0]
+                        value = struct.unpack('B', recv_data[data_index:data_index+1])[0]
                         #if index//2==0, bit value is 4th bit
                         if(index%2==0):
                             bit_value = 1 if value & (1<<4) else 0
@@ -637,6 +618,9 @@ class Type3E:
             data_type(str):     Data type: BIT, SWORD, UWORD, FLOAT, etc
         """
 
+        # reconvert data type
+        data_type = const.DT.get_struct_dt(data_type=data_type)
+        # get size
         data_type_size = const.DT.get_dt_size(data_type=data_type)
         write_elements = len(values)
 
@@ -681,8 +665,7 @@ class Type3E:
         # all other data types just packs
         else:
             for value in values:
-                # request_data += self._encode_value(value=value, isSigned=True)
-                request_data += struct.pack(f'{self.endian}{data_type}', value)
+                request_data += self._encode_value(value=value, mode=data_type)
         send_data = self._build_send_data(request_data)
 
         # send data
@@ -743,8 +726,8 @@ class Type3E:
             # example: D200, D201, D202, D203 to represent DOUBLE
             if element_size > 1:
                 tag_name = element.device
-                device_type = re.search(r"\D+", tag_name).group(0)
-                device_index = int(re.search(r"\d+", tag_name).group(0))
+                device_type = get_device_type(device=tag_name)
+                device_index = int(get_device_index(device=tag_name))
                 for index in range(element_size):
                     temp_tag_name = f"{device_type}{device_index}"
                     request_data += self._build_device_data(device=temp_tag_name)
@@ -770,27 +753,28 @@ class Type3E:
         data_index = self._get_response_data_index()
         for element in devices:
             # get data type from list
+            element_type = const.DT.get_struct_dt(data_type=element.type)
             try:
-                size =const.DT.get_dt_size(data_type=element.type)
+                size =const.DT.get_dt_size(data_type=element_type)
             except DataTypeError as e:
                 # self.__log.exception(e)
                 tag = element._replace(error=e)
                 output.append(tag)
                 continue
             # recast as UWORD
-            if element.type ==const.DT.BIT:
-                value = struct.unpack_from('H', recv_data, data_index)[0]
+            if element_type ==const.DT.BIT:
+                value = struct.unpack_from(f'{self.endian}H', recv_data, data_index)[0]
                 # extract bit0 from UWORD
                 value = 1 if value & (1<<0) else 0
                 if bool_encode:
                     value = True if value & (1<<0) else False
             else:
-                value = struct.unpack_from(element.type, recv_data, data_index)[0]
+                value = struct.unpack_from(element_type, recv_data, data_index)[0]
             # format float to have 6 digits decimal at most
-            if element.type == 'f':
+            if element_type == 'f':
                 value = float(f"{value:.6f}".rstrip("0"))
             # update value
-            tag = element._replace(value=value, type=const.DT.get_dt_name(element.type), error="")
+            tag = element._replace(value=value)
             output.append(tag)
             data_index += size
 
@@ -816,11 +800,13 @@ class Type3E:
         # get the words equivalent in size
         words_count = 0
         for element in devices:
+            # get data type from list
+            element_type = const.DT.get_struct_dt(data_type=element.type)
             # can't combine if bit
-            if element.type ==const.DT.BIT:
+            if element_type ==const.DT.BIT:
                 continue
             try:
-                words_count +=const.DT.get_dt_size(data_type=element.type) // 2
+                words_count +=const.DT.get_dt_size(data_type=element_type) // 2
             except DataTypeError:
                 # self.__log.exception(e)
                 continue
@@ -833,20 +819,22 @@ class Type3E:
 
         output = []
         for element in devices:
+            # get data type from list
+            element_type = const.DT.get_struct_dt(data_type=element.type)
             # can't combine if bit
-            if element.type ==const.DT.BIT:
-                self.batch_write(ref_device=element.device, values=[element.value], data_type=element.type)
+            if element_type ==const.DT.BIT:
+                self.batch_write(ref_device=element.device, values=[element.value], data_type=element_type)
                 continue
             # get element size in words
             try:
-                element_size =const.DT.get_dt_size(data_type=element.type) // 2
+                element_size =const.DT.get_dt_size(data_type=element_type) // 2
             except DataTypeError as e:
                 tag = element._replace(error=e)
                 output.append(tag)
                 # self.__log.exception(e)
                 continue
             # build sure unsigned is not negative
-            if element.type ==const.DT.UWORD or element.type ==const.DT.UDWORD:
+            if element_type ==const.DT.UWORD or element_type ==const.DT.UDWORD:
                 if element.value < 0:
                     element = element._replace(value=element.value * -1)
             # create artificial index
@@ -856,9 +844,9 @@ class Type3E:
             # example: D200, \x00\x01, D201, \x02\x03
             if element_size > 1:
                 tag_name = element.device
-                device_type = re.search(r"\D+", tag_name).group(0)
-                device_index = int(re.search(r"\d+", tag_name).group(0))
-                temp_tag_value = struct.pack(element.type, element.value)
+                device_type = get_device_type(device=tag_name)
+                device_index = int(get_device_index(device=tag_name))
+                temp_tag_value = struct.pack(element_type, element.value)
                 data_index = 0
                 for index in range(element_size):
                     temp_tag_name = f"{device_type}{device_index}"
@@ -868,7 +856,7 @@ class Type3E:
                     device_index += 1
             else:
                 request_data += self._build_device_data(device=element.device)
-                request_data += struct.pack(element.type, element.value)
+                request_data += struct.pack(element_type, element.value)
 
         # only wrote bits, exit
         if words_count < 1:

@@ -83,7 +83,7 @@ class DT:
         Get the data type name based on symbol
 
         Args:
-            data_type(str): data type symbol
+            data_type(str): data type name
         """
 
         if data_type == 'b':
@@ -108,6 +108,36 @@ class DT:
             raise DataTypeError(f'Unknown data type "{data_type}"')
 
 
+    def get_struct_dt(data_type:str) -> str:
+        """
+        Get struct.pack/unpack data type name
+
+        Args:
+            data_type(str): data type symbol
+        """
+
+        if data_type == 'BIT' or data_type == 'b':
+            return 'b'
+        elif data_type == 'SWORD' or data_type == 'h':
+            return 'h'
+        elif data_type == 'UWORD'or data_type == 'H':
+            return 'H'
+        elif data_type == 'SDWORD'or data_type == 'i':
+            return 'i'
+        elif data_type == 'UDWORD'or data_type == 'I':
+            return 'I'
+        elif data_type == 'FLOAT'or data_type == 'f':
+            return 'f'
+        elif data_type == 'DOUBLE'or data_type == 'd':
+            return 'd'
+        elif data_type == 'SLWORD'or data_type == 'q':
+            return 'q'
+        elif data_type == 'ULWORD'or data_type == 'Q':
+            return 'Q'
+        else:
+            raise DataTypeError(f'Unknown data type "{data_type}"')
+
+
     def get_dt_size(data_type:str):
         """
         Get the data type size based on symbol
@@ -116,11 +146,31 @@ class DT:
             data_type(str): data type symbol
         """
 
-        if data_type == 'b' or data_type == 'h' or data_type == 'H':
+        if (data_type == 'b' 
+            or data_type == 'BIT'
+            or data_type == 'h' 
+            or data_type == 'SWORD'
+            or data_type == 'H'
+            or data_type == 'UWORD'
+        ):
             return 2
-        elif data_type == 'i' or data_type == 'I' or data_type == 'f':
+        elif (
+            data_type == 'i' 
+            or data_type == 'SDWORD'
+            or data_type == 'I' 
+            or data_type == 'UDWORD'
+            or data_type == 'f'
+            or data_type == 'FLOAT'
+        ):
             return 4
-        elif data_type == 'd' or data_type == 'q' or data_type == 'Q':
+        elif (
+            data_type == 'd' 
+            or data_type == 'DOUBLE'
+            or data_type == 'q' 
+            or data_type == 'SLWORD'
+            or data_type == 'Q'
+            or data_type == 'ULWORD'
+        ):
             return 8
         else:
             raise DataTypeError(f'Data type "{data_type}" is not supported.')
@@ -258,11 +308,11 @@ class DeviceConstants:
             return DeviceConstants.LTC_DEVICE, 10
         elif (device_name == "LTN") and (plc_type == iQR_SERIES):
             return DeviceConstants.LTN_DEVICE, 10
-        elif (device_name == "LSTS") and (plc_typee == iQR_SERIES):
+        elif (device_name == "LSTS") and (plc_type == iQR_SERIES):
             return DeviceConstants.LSTS_DEVICE, 10
-        elif (device_name == "LSTN") and (plc_typeee == iQR_SERIES):
+        elif (device_name == "LSTN") and (plc_type == iQR_SERIES):
             return DeviceConstants.LSTN_DEVICE, 10
-        elif (device_name == "LCS") and (plc_typee == iQR_SERIES):
+        elif (device_name == "LCS") and (plc_type == iQR_SERIES):
             return DeviceConstants.LCS_DEVICE, 10
         elif (device_name == "LCC") and (plc_type == iQR_SERIES):
             return DeviceConstants.LCC_DEVICE, 10
